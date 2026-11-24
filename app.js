@@ -12,8 +12,8 @@ const ALIAS = { nessie: 'nessy', kitty: 'cat', meow: 'cat', cats: 'cat', blobs: 
 const $ = (s, el = document) => el.querySelector(s);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
 const shuffle = a => { a = [...a]; for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
-const img = (e, cls = '') => e.url
-  ? `<img class="${cls}" src="${esc(e.url)}" alt=":${esc(e.name)}:" data-name="${esc(e.name)}" data-added="${esc(e.added)}" decoding="async">`
+const img = (e, cls = '') => e.file
+  ? `<img class="${cls}" src="${esc(e.file)}" alt=":${esc(e.name)}:" data-name="${esc(e.name)}" data-added="${esc(e.added)}" decoding="async">`
   : '';
 const fmtDate = iso => {
   const [y, m, d] = iso.slice(0, 10).split('-').map(Number);
@@ -21,7 +21,7 @@ const fmtDate = iso => {
 };
 
 function stats(all) {
-  const list = all.filter(e => e.url);
+  const list = all.filter(e => e.file);
   const byMonth = Array.from({ length: 12 }, () => []);
   const byDay = new Map();
   for (const e of list) {
@@ -54,7 +54,7 @@ function rain(list, n = 36) {
   const pick = shuffle(list).slice(0, n);
   return `<div class="rain" aria-hidden="true">${pick.map(e => {
     const s = 28 + Math.random() * 44;
-    return `<img src="${esc(e.url)}" alt="" style="left:${Math.random() * 100}%;--s:${s}px;--t:${5 + Math.random() * 6}s;--delay:${-Math.random() * 10}s;--r:${(Math.random() * 720 - 360) | 0}deg">`;
+    return `<img src="${esc(e.file)}" alt="" style="left:${Math.random() * 100}%;--s:${s}px;--t:${5 + Math.random() * 6}s;--delay:${-Math.random() * 10}s;--r:${(Math.random() * 720 - 360) | 0}deg">`;
   }).join('')}</div>`;
 }
 

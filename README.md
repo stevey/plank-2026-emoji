@@ -1,9 +1,10 @@
 # Plank Emoji Wrapped 2026
 
 A story-style "Wrapped" page for every custom Slack emoji announced in #new-emoji during 2026.
-Plain HTML/CSS/JS with no build step. Emoji images load from `emoji.slack-edge.com`.
+Plain HTML/CSS/JS with no build step. Emoji images are local copies in `emoji/`.
 
-- `emoji.json`: the dataset (name, first-announced time, image URL, animated).
+- `emoji/`: one image per emoji, named `<emoji-name>.<png|gif|jpg|webp>`.
+- `emoji.json`: the dataset (name, first-announced time, original Slack `url`, local `file`, animated).
 - `emoji-data.js`: the same data as `window.EMOJI`, so the page also works without a server.
 - `app.js`: computes stats (busiest month and day, name "squads", longest name) and builds the slides.
 
