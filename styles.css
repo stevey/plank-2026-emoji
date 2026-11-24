@@ -80,6 +80,8 @@ body {
 }
 .sub { font-size: clamp(17px, 2.6vw, 26px); max-width: 32ch; line-height: 1.25; opacity: .92; }
 .stack > * + * { margin-top: 18px; }
+/* max-width blocks would otherwise hug the left edge of a wider stack */
+.stack > .sub, .stack > .h { margin-inline: auto; text-wrap: balance; }
 .mono {
   font-family: ui-monospace, "SF Mono", Menlo, monospace; font-weight: 600;
   background: rgb(0 0 0 / .2); padding: .1em .4em; border-radius: 8px; overflow-wrap: anywhere;
