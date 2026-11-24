@@ -241,8 +241,11 @@ async function main() {
   });
 
   // Tooltip + copy + replay (delegated)
+  let tipHost = null;
   const showTip = target => {
-    const host = target.closest('[data-name]');
+    const host = target.closest('.grid button') || target.closest('[data-name]');
+    if (host === tipHost) return; // moving between a button and its own image
+    tipHost = host;
     if (!host) return tip.classList.remove('on');
     const r = host.getBoundingClientRect();
     tip.innerHTML = `:${esc(host.dataset.name)}:<small>added ${fmtDate(host.dataset.added)}</small>`;
@@ -251,7 +254,8 @@ async function main() {
     tip.classList.add('on');
   };
   stage.addEventListener('pointerover', e => showTip(e.target));
-  stage.addEventListener('pointerout', e => { if (!e.relatedTarget?.closest?.('[data-name]')) tip.classList.remove('on'); });
+  stage.addEventListener('pointerout', e => { if (!e.relatedTarget?.closest?.('[data-name]')) { tipHost = null; tip.classList.remove('on'); } });
+  stage.addEventListener('animationend', e => { if (e.animationName === 'wave') e.target.classList.add('in'); });
   stage.addEventListener('focusin', e => showTip(e.target));
   stage.addEventListener('click', async e => {
     if (e.target.closest('[data-replay]')) return go(0);
@@ -259,12 +263,19 @@ async function main() {
     if (!b) return;
     try { await navigator.clipboard.writeText(`:${b.dataset.name}:`); tip.innerHTML = `Copied :${esc(b.dataset.name)}:`; } catch {}
   });
-  // Hide any emoji whose image has since been deleted from Slack
+  // Retry a failed image once (busy connection), then hide it if it is really missing
   stage.addEventListener('error', e => {
-    if (e.target.tagName !== 'IMG') return;
-    (e.target.closest('.grid button') || e.target).remove();
+    const im = e.target;
+    if (im.tagName !== 'IMG') return;
+    if (!im.dataset.retried) {
+      im.dataset.retried = '1';
+      const src = im.getAttribute('src');
+      setTimeout(() => { im.src = `${src}${src.includes('?') ? '&' : '?'}r=1`; }, 400 + Math.random() * 800);
+      return;
+    }
+    (im.closest('.grid button') || im).remove();
   }, true);
-  stage.addEventListener('scroll', () => tip.classList.remove('on'), true);
+  stage.addEventListener('scroll', () => { tipHost = null; tip.classList.remove('on'); }, true);
 
   go(0);
 }
