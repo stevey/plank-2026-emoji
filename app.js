@@ -3,6 +3,15 @@
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const MONTHS_LONG = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 const DUR = 7000;
+const HEADCOUNT = 25; // Plank, for the Emoji Coefficient
+// Tiers from Liam Galvin's "Company Culture = Slack Emoji ÷ √Headcount"
+const CULTURE_TIERS = [
+  { min: 0,  label: 'Poor',       note: 'Default emoji and a stale party parrot.' },
+  { min: 5,  label: 'Healthy',    note: 'Functional. Nobody is worried.' },
+  { min: 20, label: 'Thriving',   note: ':this-is-fine: in #incidents, daily.' },
+  { min: 50, label: 'Late-stage', note: 'Emoji now reference other emoji. HR has asked for a glossary.' },
+];
+const CULTURE_SRC = 'https://lia.mg/posts/measuring-company-culture-with-slack-emoji/';
 
 // Tokens that would form a "family" but aren't one.
 const STOP = new Set(['the','of','a','and','is','my','in','on','to','it','that','this','with','out','no','yes','hi','up','e']);
@@ -45,8 +54,12 @@ function stats(all) {
 
   const longest = [...list].sort((a, b) => b.name.length - a.name.length)[0];
   const animated = list.filter(e => e.animated);
+  const cats = list.filter(e => e.pet === 'cat');
+  const dogs = list.filter(e => e.pet === 'dog');
+  const culture = Math.round(list.length / Math.sqrt(HEADCOUNT) * 10) / 10;
+  const tierIdx = CULTURE_TIERS.reduce((t, x, i) => (culture >= x.min ? i : t), 0);
 
-  return { all, list, byMonth, lastMonth, bigDay, bigDayList, squads, longest, animated,
+  return { all, list, byMonth, lastMonth, bigDay, bigDayList, squads, longest, animated, cats, dogs, culture, tierIdx,
     first: list[0], latest: list[list.length - 1], busiestMonth: byMonth.reduce((b, m, i) => (m.length > byMonth[b].length ? i : b), 0) };
 }
 
@@ -126,6 +139,29 @@ function buildSlides(S) {
       </div>
     </div>` });
 
+  if (S.cats.length + S.dogs.length) {
+    const catsWin = S.cats.length >= S.dogs.length;
+    const [hi, lo] = catsWin ? [S.cats.length, S.dogs.length] : [S.dogs.length, S.cats.length];
+    const ratio = lo ? Math.round(hi / lo * 10) / 10 : hi;
+    const side = (label, arr, d) => `
+      <div class="team ${arr.length === hi && hi !== lo ? 'win' : ''}">
+        <p class="kicker rise" style="animation-delay:${d}s">${label}</p>
+        <p class="big rise" style="animation-delay:${d + .15}s"><span data-count="${arr.length}">0</span></p>
+        <div class="pile">${arr.map((e, i) => img(e).replace('<img ', `<img style="animation-delay:${(d + .6 + i * .06).toFixed(2)}s" `)).join('')}</div>
+      </div>`;
+    slides.push({ cls: 'bg-pets', html: `
+    <div class="stack" style="width:100%">
+      <p class="kicker rise">The age-old question</p>
+      <p class="h rise d1">Cats or dogs?</p>
+      <div class="versus">
+        ${side('Cats', S.cats, .5)}
+        <span class="vs rise d3">vs</span>
+        ${side('Dogs', S.dogs, .9)}
+      </div>
+      <p class="sub rise d5">${catsWin ? 'Plank is a cat company' : 'Plank is a dog company'}, ${ratio} to 1. ${Math.round((S.cats.length + S.dogs.length) / S.list.length * 100)}% of everything we added this year was a pet.</p>
+    </div>` });
+  }
+
   if (S.animated.length) slides.push({ cls: 'bg-moving', html: `
     <div class="stack">
       <p class="kicker rise">Still images are for quitters</p>
@@ -141,6 +177,28 @@ function buildSlides(S) {
       <p class="h rise d2" style="max-width:none;font-size:clamp(20px,4.4vw,54px)"><span class="mono">:${esc(S.longest.name)}:</span></p>
       <p class="sub rise d3" style="margin-inline:auto">${S.longest.name.length + 2} characters. Autocomplete was invented for this.</p>
     </div>` });
+
+  {
+    const tier = CULTURE_TIERS[S.tierIdx];
+    // Four equal-width tiers; place the pin proportionally inside its tier (top tier tops out at 100)
+    const lo = tier.min, hi = CULTURE_TIERS[S.tierIdx + 1]?.min ?? 100;
+    const pos = Math.min(98, (S.tierIdx + Math.min(1, (S.culture - lo) / (hi - lo))) * 25);
+    slides.push({ cls: 'bg-culture', html: `
+    <div class="stack" style="width:100%">
+      <p class="kicker rise">Peer-reviewed by nobody</p>
+      <p class="h rise d1">Our culture, scientifically measured</p>
+      <p class="formula rise d2">
+        <span><i>C</i> = </span><span class="frac"><span>${S.list.length} <small>emoji</small></span><span>√${HEADCOUNT} <small>Plankers</small></span></span>
+        <span> = <b data-count-dec="${S.culture}">0</b></span>
+      </p>
+      <div class="meter rise d3" style="--pos:${pos}%">
+        ${CULTURE_TIERS.map((t, i) => `<span class="${i === S.tierIdx ? 'here' : ''}" style="--from:${i * 25}%;--to:${(i + 1) * 25}%">${t.label}</span>`).join('')}
+        <i class="pin" aria-hidden="true"></i>
+      </div>
+      <p class="sub rise d4"><b>${tier.label} culture.</b> ${tier.note} And that's only counting 2026.</p>
+      <p class="cite rise d5">Method: Liam Galvin, <a href="${CULTURE_SRC}" target="_blank" rel="noopener">“Company Culture = Slack Emoji ÷ √Headcount”</a> (Nov 2026). No values posters were harmed.</p>
+    </div>` });
+  }
 
   slides.push({ cls: 'bg-latest', html: `
     ${rain(S.list, 20)}
@@ -165,11 +223,13 @@ function buildSlides(S) {
 }
 
 function countUp(el) {
-  const target = Number(el.dataset.count);
+  const dec = el.dataset.countDec != null;
+  const target = Number(dec ? el.dataset.countDec : el.dataset.count);
   const t0 = performance.now(), d = 1600;
   const tick = t => {
     const p = Math.min(1, (t - t0) / d);
-    el.textContent = Math.round(target * (1 - Math.pow(1 - p, 3)));
+    const v = target * (1 - Math.pow(1 - p, 3));
+    el.textContent = dec ? v.toFixed(1) : Math.round(v);
     if (p < 1) requestAnimationFrame(tick);
   };
   setTimeout(() => requestAnimationFrame(tick), 400);
@@ -210,7 +270,7 @@ async function main() {
     el.setAttribute('aria-label', `Slide ${n + 1} of ${slides.length}`);
     el.innerHTML = slides[n].html;
     stage.appendChild(el);
-    el.querySelectorAll('[data-count]').forEach(countUp);
+    el.querySelectorAll('[data-count], [data-count-dec]').forEach(countUp);
 
     bars.forEach((b, i) => {
       b.className = i < n ? 'done' : '';
